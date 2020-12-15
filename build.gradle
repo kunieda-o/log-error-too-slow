@@ -1,3 +1,18 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://repo.maven.org/maven2/"
+        }
+        maven {
+            url "https://repo1.maven.org/maven2/"
+        }
+    }
+    dependencies {
+        classpath "com.google.cloud.tools:appengine-gradle-plugin:2.3.0"
+    }
+}
+
 plugins {
     id 'java'
     id 'io.quarkus'
@@ -8,6 +23,23 @@ repositories {
     mavenCentral()
 }
 
+ext {
+    lombokVersion = "1.18.12"
+    googleCloudLibraryVersion = "8.0.0"
+}
+
+
+configurations {
+    implementation {
+        exclude group: 'org.jboss.slf4j', module: 'slf4j-jboss-logging'
+    }
+    all {
+        resolutionStrategy.force "ch.qos.logback:logback-core:1.2.3"
+        resolutionStrategy.force "ch.qos.logback:logback-classic:1.2.3"
+    }
+}
+
+
 dependencies {
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-resteasy'
@@ -15,6 +47,14 @@ dependencies {
     implementation 'io.quarkus:quarkus-arc'
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
+
+    implementation enforcedPlatform("com.google.cloud:libraries-bom:${googleCloudLibraryVersion}")
+    implementation 'com.google.cloud:google-cloud-logging-logback'
+
+    compile "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    implementation 'org.slf4j:jul-to-slf4j:1.7.30'
 }
 
 group 'logtest'
@@ -32,4 +72,28 @@ compileJava {
 
 compileTestJava {
     options.encoding = 'UTF-8'
+}
+
+apply plugin: "com.google.cloud.tools.appengine-appyaml"
+
+def gcpProjectId = project.findProperty("gcpProjectId") ?: 'missing'
+def gcpVersion = project.findProperty("gcpVersion") ?: 'missing'
+
+appengine {
+    stage {
+        artifact = "build/${project.name}-1.0.0-SNAPSHOT-runner.jar"
+    }
+    deploy {
+        projectId = gcpProjectId
+        version = gcpVersion
+        promote = true
+    }
+}
+
+project.afterEvaluate {
+    tasks.appengineDeploy.dependsOn quarkusBuild
+}
+
+quarkusBuild {
+    uberJar = true
 }

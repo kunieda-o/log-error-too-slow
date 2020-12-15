@@ -1,0 +1,17 @@
+<configuration>
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
+    <appender name="CLOUD" class="com.google.cloud.logging.logback.LoggingAppender">
+        <log>application.log</log> <!-- Optional : default java.log -->
+        <enhancer>logtest.gcplog.GcpEnhancer</enhancer> <!-- Optional -->
+    </appender>
+
+    <logger name="io.netty" level="WARN"/>
+    <logger name="io.grpc" level="WARN"/>
+    <logger name="org.jboss" level="WARN"/>
+
+    <root level="info">
+        <appender-ref ref="CLOUD"/>
+    </root>
+</configuration>
